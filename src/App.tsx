@@ -6,10 +6,24 @@ import RPC from "./evm";
 import "./App.css";
 
 const clientId = "BESA04VlDTkUmO4I7Wzh4v0KG5edF1LfzpewsIt-RcHnKKVcZUAMTbC5wO20CViz0NQjQhTqFhA1IOfJoR_VB3Y"; // get from https://dashboard.web3auth.io
+const rpcUrl = 'https://bsctestapi.terminet.io/rpc'
+const chainId = '0x61'
+
+// const idToken = 'eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6ImJiZDcxMTJjLWY4YzEtNDkyZi1hZTc3LTQ3YjFlN2E3MGQ4ZiIsImVtYWlsIjoidGhhbmhkYW9AcmVtaXRhbm8uY29tIiwiYWRkcmVzcyI6bnVsbCwiaWF0IjoxNjYwMDE4NTAyLCJhdWQiOiJCRVNBMDRWbERUa1VtTzRJN1d6aDR2MEtHNWVkRjFMZnpwZXdzSXQtUmNIbktLVmNaVUFNVGJDNXdPMjBDVml6ME5RalFoVHFGaEExSU9mSm9SX1ZCM1kifQ.QzYDOeesBYCuU4jJE8C6QA2dXz6ycRU2RG1X1ViuS85JdZ76dIsaI5O95KXVskSg2eKHNsgLtjmBWL7HZAaRhSCzVAErqaE33El765CL-fhYsVGGRzq812RJPAowNiecYMNZNJY-3wWKPd1IzSlRIP47NeALE9-KvuQt_pfpTt_6bKdJLlGTjQw8T_jXoj2PuBNh1f_q0BxDTVPZO_TqUBGrSAPyGXK0Hxaj8-NfACaVSfE15C-dyi3qa5xX9F0v_YZg9fRnHRE8u7Rx7phaSj7z0erclSoo5vjOUeKtZAsucJEAvNdwKtWZPDPc1IRXuQ7vwlXc0IEnM2QFWDoT4g'
 
 function App() {
   const [web3auth, setWeb3auth] = useState<Web3Auth | null>(null);
   const [provider, setProvider] = useState<SafeEventEmitterProvider | null>(null);
+  const [idToken, setIdtoken] = useState("")
+
+  useEffect(() => {
+    const urlSearchParams = new URLSearchParams(window.location.search);
+    const token = urlSearchParams.get('token')
+    console.log(token)
+    if (token) {
+      setIdtoken(token)
+    }
+  }, [])
 
   useEffect(() => {
     const init = async () => {
@@ -19,8 +33,8 @@ function App() {
           clientId,
           chainConfig: {
             chainNamespace: CHAIN_NAMESPACES.EIP155,
-            chainId: "0x13881",
-            rpcTarget: "https://rpc.ankr.com/polygon_mumbai", // This is the mainnet RPC we have added, please pass on your own endpoint while creating an app
+            chainId,
+            rpcTarget: rpcUrl, // This is the mainnet RPC we have added, please pass on your own endpoint while creating an app
           },
         });
 
@@ -70,6 +84,10 @@ function App() {
     init();
   }, []);
 
+  const googleLogin = () => {
+    window.location.href = 'https://nft5-backend.remidemo.com/v1/auth/login/google?redirectUrl=http://localhost:3000'
+  }
+
   const login = async () => {
     if (!web3auth) {
       console.log("web3auth not initialized yet");
@@ -81,7 +99,7 @@ function App() {
       relogin: true,
       loginProvider: 'jwt',
       extraLoginOptions: {
-        id_token: 'eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6ImJiZDcxMTJjLWY4YzEtNDkyZi1hZTc3LTQ3YjFlN2E3MGQ4ZiIsImVtYWlsIjoidGhhbmhkYW9AcmVtaXRhbm8uY29tIiwiYWRkcmVzcyI6bnVsbCwiaWF0IjoxNjU3NzczMTMzLCJhdWQiOiJCRVNBMDRWbERUa1VtTzRJN1d6aDR2MEtHNWVkRjFMZnpwZXdzSXQtUmNIbktLVmNaVUFNVGJDNXdPMjBDVml6ME5RalFoVHFGaEExSU9mSm9SX1ZCM1kifQ.rRL23Bi9WuMjLunGJdKz6UGgeoRfqde1K_N084XVyOV5JQCACSsUHt1YBc8yS4QNT3P2N9uhs2fQueyzI8DdDcjx86XzC1_KLdLJRG8A0Ntg1gTx0Zghc7W-z8Hmg7-oD5_mL2eWYu5cq0_xfvmjsGInTcQQMoeQhgcfjwE-OHOqY_4MxnjCytL4_UWJNQ_8cnx0zTbDaP41JiOAhxngpvZu9sm5HmP7e-G1GDpx7g0A_M-LsiteD31b7MKxZP5Vt9ZErJpf7ye6TKm7MreklfetKZK6aQh8FynbFkqbPfcnSq64_0RxzDr_18O69dZ-wEjr0fCLUAZ9FLFzSAKprQ',
+        id_token: idToken,
         domain: "http://localhost:3000",
         verifierIdField: "email",
       }
@@ -256,9 +274,9 @@ function App() {
         <button onClick={buyToken1} className="card">
           Buy Token 1
         </button>
-        {/* <button onClick={logout} className="card">
+        <button onClick={logout} className="card">
           Log Out
-        </button> */}
+        </button>
       </div>
       <div id="console" style={{ whiteSpace: "pre-line" }}>
         <p style={{ whiteSpace: "pre-line" }}></p>
@@ -267,9 +285,15 @@ function App() {
   );
 
   const unloggedInView = (
-    <button onClick={login} className="card">
-      Login
-    </button>
+    <>
+      <button onClick={googleLogin} className="card">
+        Google Login
+      </button>
+      <input onChange={(e) => setIdtoken(e.target.value)} className='input' value={idToken} />
+      <button onClick={login} className="card">
+        Login
+      </button>
+    </>
   );
 
   return (

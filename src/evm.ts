@@ -1,19 +1,24 @@
 import type { SafeEventEmitterProvider } from "@web3auth/base";
 import Web3 from "web3";
 import { Accounts } from 'web3-eth-accounts';
-import { BigNumber, Contract, ethers, Signer } from 'ethers'
+import { BigNumber, Contract, ethers } from 'ethers'
 import { Wallet } from '@0xsequence/wallet'
 import { RpcRelayer } from '@0xsequence/relayer'
-import { sequence } from "0xsequence";
-import { Interface } from "ethers/lib/utils";
 import erc20Abi from './abi/erc20.json'
 import mintNftAbi from './abi/mintnft.json'
 import marketplaceAbi from './abi/marketplace.json'
+import { WalletContext } from "0xsequence/dist/declarations/src/network";
 
-const USDT = '0x3813e82e6f7098b9583FC0F33a962D02018B6803'
-const MintNFT = '0xcBda60c05037b79A381b66Bc59E6999efDFF4b7a'
-const Marketplace = '0x83a74411e5D09153BB8851D7bF03BB5b1b0Ad85B'
-const assetHolder = '0xCa477c248d9735E5d9F2A4C0B2ac8E5F20D8Ac0b'
+const USDT = '0x78867BbEeF44f2326bF8DDd1941a4439382EF2A7'
+const MintNFT = '0x2d898150eFdfb917547561b676d74B5fD6Fd260B'
+const Marketplace = '0x31061de1be4152720377df1Bd8365D8e081513a0'
+const assetHolder = '0x8Eb6379102D7Ba9b3f2DFB1C103c03C4Ce64f0e7'
+
+const relayerBaseUrl = 'https://mumbai-relayer.sequence.app'
+const relayerUrl = `https://cors-anywhere.herokuapp.com/${relayerBaseUrl}`
+const selfRelayerUrl = `http://localhost:4000`
+
+const randomWallet = ethers.Wallet.createRandom()
 
 export default class EthereumRpc {
   private provider: SafeEventEmitterProvider;
@@ -30,7 +35,7 @@ export default class EthereumRpc {
     }
 
     const eth = new ethers.providers.Web3Provider(this.provider as any)
-    this.relayer = new RpcRelayer({ url: 'https://cors-anywhere.herokuapp.com/https://mumbai-relayer.sequence.app', provider: eth.getSigner().provider })
+    this.relayer = new RpcRelayer({ url: selfRelayerUrl, provider: eth.getSigner().provider, bundleCreation: true })
     return this.relayer
   }
 
@@ -42,7 +47,14 @@ export default class EthereumRpc {
     const eth = new ethers.providers.Web3Provider(this.provider as any)
     const relayer = await this.getRelayer()
 
-    this.wallet = (await Wallet.singleOwner(eth.getSigner())).connect(eth.getSigner().provider, relayer)
+    const context: WalletContext = {
+      factory: '0xf9D09D634Fb818b05149329C1dcCFAeA53639d96',
+      mainModule: '0xd01F11855bCcb95f88D7A48492F66410d4637313',
+      mainModuleUpgradable: '0x7EFE6cE415956c5f80C6530cC6cc81b4808F6118',
+      guestModule: '0x02390F3E6E5FD1C6786CB78FD3027C117a9955A7',
+      sequenceUtils: '0xd130B43062D875a4B7aF3f8fc036Bc6e9D3E1B3E'
+    }
+    this.wallet = (await Wallet.singleOwner(eth.getSigner(), context)).connect(eth.getSigner().provider, relayer)
 
     return this.wallet;
   }
@@ -100,9 +112,9 @@ export default class EthereumRpc {
         to: Marketplace,
         data: contract.interface.encodeFunctionData('placeBuyOrder', [
           1,
-          BigNumber.from(10).pow(6).div(100).toString(),
+          BigNumber.from(10).pow(18).toString(),
           1,
-          BigNumber.from(10).pow(6).div(100).toString(),
+          BigNumber.from(10).pow(18).toString(),
           false,
           false
         ])
